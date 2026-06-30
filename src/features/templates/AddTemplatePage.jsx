@@ -4,6 +4,7 @@ import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table
 import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import {
+  CheckCircle2,
   AlignCenter,
   AlignLeft,
   AlignRight,
@@ -16,7 +17,7 @@ import {
   Save,
   UnderlineIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { defaultPageMargin, placeholderFields, defaultSettings } from "@/data/defaults";
 import { AppLink, useAppRouter } from "@/lib/router";
 import { createTemplate, normalizePageMargin, getSettings } from "@/services/local-storage";
@@ -129,8 +130,28 @@ function MarginField({ id, label, value, onChange }) {
   );
 }
 
+function applyEditorContent(editor, html) {
+  if (!editor) {
+    return false;
+  }
+
+  try {
+    editor.commands.setContent(html ?? "", { emitUpdate: false });
+    return true;
+  } catch {
+    try {
+      editor.commands.setContent("", { emitUpdate: false });
+    } catch {
+      // Keep rendering the page if the editor cannot parse the provided HTML.
+    }
+    return false;
+  }
+}
+
 export default function AddTemplatePage() {
   const router = useAppRouter();
+  const successTimerRef = useRef(null);
+  const navigateTimerRef = useRef(null);
   const [code, setCode] = useState("");
   const [contentHtml, setContentHtml] = useState(starterHtml);
   const [isActive, setIsActive] = useState(true);
@@ -139,10 +160,18 @@ export default function AddTemplatePage() {
   const [saving, setSaving] = useState(false);
   const [sortOrder, setSortOrder] = useState(50);
   const [status, setStatus] = useState("Isi data template baru.");
+  const [savedNotice, setSavedNotice] = useState("");
   const [settings, setSettings] = useState(defaultSettings);
 
   useEffect(() => {
     setSettings(getSettings());
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(successTimerRef.current);
+      window.clearTimeout(navigateTimerRef.current);
+    };
   }, []);
 
   const editor = useEditor({
@@ -169,6 +198,10 @@ export default function AddTemplatePage() {
     },
   });
 
+  useEffect(() => {
+    applyEditorContent(editor, contentHtml);
+  }, [editor]);
+
   function saveTemplate() {
     const trimmedName = name.trim();
     const trimmedCode = code.trim().toUpperCase();
@@ -189,13 +222,28 @@ export default function AddTemplatePage() {
       sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
     });
     setStatus("Template baru berhasil disimpan di browser.");
-    setSaving(false);
-    router.navigate("/templates");
+    setSavedNotice("Template berhasil disimpan.");
+    window.clearTimeout(successTimerRef.current);
+    successTimerRef.current = window.setTimeout(() => setSavedNotice(""), 2200);
+    window.clearTimeout(navigateTimerRef.current);
+    navigateTimerRef.current = window.setTimeout(() => {
+      setSaving(false);
+      router.navigate("/templates");
+    }, 900);
   }
 
   return (
     <section className="mx-auto max-w-7xl px-5 py-6 lg:px-8">
       <div className="space-y-6">
+        {savedNotice ? (
+          <div className="save-notice rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-800 shadow-card">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <p className="text-sm font-semibold">{savedNotice}</p>
+            </div>
+          </div>
+        ) : null}
+
         <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-card md:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -294,18 +342,24 @@ export default function AddTemplatePage() {
                 padding: `${pageMargin.top}cm ${pageMargin.right}cm ${pageMargin.bottom}cm ${pageMargin.left}cm`,
               }}
             >
-              <div className="border-b-4 border-black pb-4 text-center mb-6">
+              <div className="mb-6 flex items-center gap-4 border-b-4 border-black pb-4">
                 {settings.logoBase64 ? (
-                  <img alt="Logo desa" className="letter-logo mx-auto mb-2 h-16 w-16 object-contain" src={settings.logoBase64} />
+                  <img
+                    alt="Logo desa"
+                    className="letter-logo letter-logo-letterhead flex-none object-contain"
+                    src={settings.logoBase64}
+                  />
                 ) : null}
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-black">
-                  Pemerintah Kabupaten {settings.regencyName}
-                </p>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-black">
-                  Kecamatan {settings.districtName}
-                </p>
-                <h3 className="mt-1 text-2xl font-bold uppercase text-black">{settings.villageName}</h3>
-                <p className="mt-1 text-sm text-black">{settings.villageAddress}</p>
+                <div className="min-w-0 flex-1 text-center">
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-black">
+                    Pemerintah Kabupaten {settings.regencyName}
+                  </p>
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-black">
+                    Kecamatan {settings.districtName}
+                  </p>
+                  <h3 className="mt-1 text-2xl font-bold uppercase text-black">{settings.villageName}</h3>
+                  <p className="mt-1 text-sm text-black">{settings.villageAddress}</p>
+                </div>
               </div>
               <EditorContent editor={editor} />
             </div>

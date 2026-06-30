@@ -117,7 +117,12 @@ html:hover::-webkit-scrollbar-thumb {
 }
 
 .letter-logo {
-  filter: grayscale(1) contrast(1.1);
+  filter: none;
+}
+
+.letter-logo-letterhead {
+  width: 3cm;
+  height: 3cm;
 }
 
 .letter-content h1,
@@ -212,6 +217,39 @@ html:hover::-webkit-scrollbar-thumb {
   .tiptap-editor td:nth-child(1) {
     width: 42%;
   }
+}
+
+@keyframes save-notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes save-notice-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.18);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(22, 163, 74, 0);
+  }
+}
+
+.save-notice {
+  animation:
+    save-notice-in 180ms ease-out,
+    save-notice-pulse 900ms ease-out 1;
+}
+
+.save-notice-enter {
+  animation: save-notice-in 180ms ease-out;
 }
 
 @media print {

@@ -1,4 +1,4 @@
-import { ImageIcon, Save, Upload } from "lucide-react";
+import { CheckCircle2, ImageIcon, Save, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { defaultSettings, placeholderFields } from "@/data/defaults";
 import { getSettings, saveSettings, subscribesimpoiStorage } from "@/services/local-storage";
@@ -10,8 +10,10 @@ const whatsappPlaceholders = [
 
 export default function SettingsPage() {
   const whatsappTextareaRef = useRef(null);
+  const savedNoticeTimerRef = useRef(null);
   const [settings, setSettings] = useState(defaultSettings);
   const [status, setStatus] = useState("Memuat pengaturan lokal...");
+  const [savedNotice, setSavedNotice] = useState("");
 
   function loadSettings() {
     setSettings(getSettings());
@@ -21,6 +23,10 @@ export default function SettingsPage() {
   useEffect(() => {
     loadSettings();
     return subscribesimpoiStorage(loadSettings);
+  }, []);
+
+  useEffect(() => {
+    return () => window.clearTimeout(savedNoticeTimerRef.current);
   }, []);
 
   function updateField(key, value) {
@@ -44,6 +50,9 @@ export default function SettingsPage() {
   function persistSettings() {
     saveSettings(settings);
     setStatus("Pengaturan berhasil disimpan di browser.");
+    setSavedNotice("Pengaturan berhasil disimpan.");
+    window.clearTimeout(savedNoticeTimerRef.current);
+    savedNoticeTimerRef.current = window.setTimeout(() => setSavedNotice(""), 2200);
   }
 
   function insertWhatsappPlaceholder(key) {
@@ -110,6 +119,15 @@ export default function SettingsPage() {
 
   return (
     <section className="mx-auto max-w-4xl space-y-6 px-5 py-6 lg:px-8">
+      {savedNotice ? (
+        <div className="save-notice rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-800 shadow-card">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <p className="text-sm font-semibold">{savedNotice}</p>
+          </div>
+        </div>
+      ) : null}
+
       {/* Identitas Desa */}
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-card md:p-6">
         <p className="text-sm font-semibold text-primary-700">Pengaturan</p>
@@ -219,6 +237,15 @@ export default function SettingsPage() {
           Bisa memakai placeholder seperti {"{{nama_template}}"}, {"{{nama_warga}}"}, dan {"{{nomor_surat}}"}.
         </p>
       </section>
+
+      {savedNotice ? (
+        <div className="save-notice rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-800 shadow-card">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <p className="text-sm font-semibold">{savedNotice}</p>
+          </div>
+        </div>
+      ) : null}
 
       <button
         className="inline-flex items-center gap-2 rounded-2xl bg-primary-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-400"

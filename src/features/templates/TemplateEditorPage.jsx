@@ -4,6 +4,7 @@ import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table
 import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import {
+  CheckCircle2,
   AlignCenter,
   AlignLeft,
   AlignRight,
@@ -19,7 +20,7 @@ import {
   Undo2,
   Redo2,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultPageMargin, defaultTemplates, placeholderFields } from "@/data/defaults";
 import { AppLink } from "@/lib/router";
 import { getTemplates, normalizePageMargin, subscribesimpoiStorage, updateTemplate, getSettings } from "@/services/local-storage";
@@ -172,7 +173,27 @@ function MarginField({ id, label, value, onChange }) {
   );
 }
 
+function applyEditorContent(editor, html) {
+  if (!editor) {
+    return false;
+  }
+
+  try {
+    editor.commands.setContent(html ?? "", { emitUpdate: false });
+    return true;
+  } catch {
+    try {
+      editor.commands.setContent("", { emitUpdate: false });
+    } catch {
+      // If even the empty document fails, keep the page alive and let the
+      // surrounding UI render instead of crashing the route.
+    }
+    return false;
+  }
+}
+
 export default function TemplateEditorPage() {
+  const successTimerRef = useRef(null);
   const [initialTemplateId] = useState(() => {
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.has("template")) {
@@ -192,6 +213,8 @@ export default function TemplateEditorPage() {
   const [pageMargin, setPageMargin] = useState(defaultPageMargin);
   const [status, setStatus] = useState("Memuat template lokal...");
   const [saving, setSaving] = useState(false);
+  const [editorError, setEditorError] = useState("");
+  const [savedNotice, setSavedNotice] = useState("");
   const [settings, setSettings] = useState(defaultSettings);
   const [name, setName] = useState(defaultTemplates[0].name);
   const [code, setCode] = useState(defaultTemplates[0].code);
@@ -245,25 +268,41 @@ export default function TemplateEditorPage() {
   }, []);
 
   useEffect(() => {
-    if (!selectedTemplate) {
+    return () => window.clearTimeout(successTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (!editor || !selectedTemplate) {
       return;
     }
 
-    queueMicrotask(() => {
+    const nextHtml = selectedTemplate.contentHtml ?? defaultTemplate?.contentHtml ?? "";
+    const timeoutId = window.setTimeout(() => {
       setName(selectedTemplate.name ?? "");
       setCode(selectedTemplate.code ?? "");
       setSortOrder(selectedTemplate.sortOrder ?? 50);
       setIsActive(Boolean(selectedTemplate.isActive));
       setPageMargin(normalizePageMargin(selectedTemplate.pageMargin));
-      setContentHtml(selectedTemplate.contentHtml ?? "");
-      editor?.commands.setContent(selectedTemplate.contentHtml ?? "", { emitUpdate: false });
-    });
+      setContentHtml(nextHtml);
+      const applied = applyEditorContent(editor, nextHtml);
+
+      if (!applied) {
+        setEditorError(
+          "Konten template ini gagal dimuat ke editor. Gunakan Reset untuk kembali ke template bawaan.",
+        );
+      } else {
+        setEditorError("");
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [editor, selectedTemplate]);
 
   function resetTemplate() {
     const resetHtml = defaultTemplate?.contentHtml ?? selectedTemplate?.contentHtml ?? "";
     setContentHtml(resetHtml);
-    editor?.commands.setContent(resetHtml, { emitUpdate: false });
+    const applied = applyEditorContent(editor, resetHtml);
+    setEditorError(applied ? "" : "Konten template tetap gagal dimuat ke editor.");
     setStatus("Editor dikembalikan ke template bawaan. Klik Save untuk menyimpan.");
   }
 
@@ -287,6 +326,9 @@ export default function TemplateEditorPage() {
     if (updated) {
       setTemplates((current) => current.map((template) => (template.id === updated.id ? updated : template)));
       setStatus("Template berhasil disimpan di browser.");
+      setSavedNotice("Template berhasil disimpan.");
+      window.clearTimeout(successTimerRef.current);
+      successTimerRef.current = window.setTimeout(() => setSavedNotice(""), 2200);
     } else {
       setStatus("Template gagal disimpan.");
     }
@@ -297,6 +339,15 @@ export default function TemplateEditorPage() {
   return (
     <section className="mx-auto max-w-7xl px-5 py-6 lg:px-8">
       <div className="space-y-6">
+        {savedNotice ? (
+          <div className="save-notice rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-green-800 shadow-card">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <p className="text-sm font-semibold">{savedNotice}</p>
+            </div>
+          </div>
+        ) : null}
+
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card">
           <div className="border-b border-gray-200 p-5 md:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -404,33 +455,56 @@ export default function TemplateEditorPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <TemplateToolbar editor={editor} onReset={resetTemplate} onSave={saveTemplate} saving={saving} />
-          </div>
-
-          <div className="overflow-x-auto bg-gray-100 p-4 md:p-6">
-            <div
-              className="sheet-a4 mx-auto w-[210mm] min-w-[210mm] bg-white shadow-card"
-              style={{
-                padding: `${pageMargin.top}cm ${pageMargin.right}cm ${pageMargin.bottom}cm ${pageMargin.left}cm`,
-              }}
-            >
-              <div className="border-b-4 border-black pb-4 text-center mb-6">
-                {settings.logoBase64 ? (
-                  <img alt="Logo desa" className="letter-logo mx-auto mb-2 h-16 w-16 object-contain" src={settings.logoBase64} />
-                ) : null}
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-black">
-                  Pemerintah Kabupaten {settings.regencyName}
-                </p>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-black">
-                  Kecamatan {settings.districtName}
-                </p>
-                <h3 className="mt-1 text-2xl font-bold uppercase text-black">{settings.villageName}</h3>
-                <p className="mt-1 text-sm text-black">{settings.villageAddress}</p>
-              </div>
-              <EditorContent editor={editor} />
+          {editorError ? (
+            <div className="border-t border-gray-200 bg-red-50 px-5 py-4 md:px-6">
+              <p className="text-sm font-semibold text-red-700">Editor template tidak bisa dimuat</p>
+              <p className="mt-1 text-sm leading-6 text-red-700/90">{editorError}</p>
+              <button
+                className="mt-4 inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                onClick={resetTemplate}
+                type="button"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset Template
+              </button>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <TemplateToolbar editor={editor} onReset={resetTemplate} onSave={saveTemplate} saving={saving} />
+              </div>
+
+              <div className="overflow-x-auto bg-gray-100 p-4 md:p-6">
+                <div
+                  className="sheet-a4 mx-auto w-[210mm] min-w-[210mm] bg-white shadow-card"
+                  style={{
+                    padding: `${pageMargin.top}cm ${pageMargin.right}cm ${pageMargin.bottom}cm ${pageMargin.left}cm`,
+                  }}
+                >
+                  <div className="mb-6 flex items-center gap-4 border-b-4 border-black pb-4">
+                    {settings.logoBase64 ? (
+                      <img
+                        alt="Logo desa"
+                        className="letter-logo letter-logo-letterhead flex-none object-contain"
+                        src={settings.logoBase64}
+                      />
+                    ) : null}
+                    <div className="min-w-0 flex-1 text-center">
+                      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-black">
+                        Pemerintah Kabupaten {settings.regencyName}
+                      </p>
+                      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-black">
+                        Kecamatan {settings.districtName}
+                      </p>
+                      <h3 className="mt-1 text-2xl font-bold uppercase text-black">{settings.villageName}</h3>
+                      <p className="mt-1 text-sm text-black">{settings.villageAddress}</p>
+                    </div>
+                  </div>
+                  <EditorContent editor={editor} />
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <aside className="space-y-6">

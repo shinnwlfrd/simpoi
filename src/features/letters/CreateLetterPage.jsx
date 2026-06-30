@@ -87,7 +87,7 @@ export default function CreateLetterPage() {
     setStatus(`Nomor surat otomatis: ${generatedNumber}`);
   }
 
-  function printLetter() {
+  function downloadPdf() {
     window.print();
   }
 
@@ -241,11 +241,11 @@ export default function CreateLetterPage() {
             </button>
             <button
               className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary-400 bg-white px-4 py-2.5 text-sm font-semibold text-primary-700 transition hover:bg-primary-100 sm:w-auto"
-              onClick={printLetter}
+              onClick={downloadPdf}
               type="button"
             >
               <Printer className="h-4 w-4" />
-              Print / Download PDF
+              Download PDF
             </button>
           </div>
 
@@ -267,7 +267,7 @@ export default function CreateLetterPage() {
                 target="_blank"
               >
                 <MessageCircle className="h-4 w-4" />
-                Kirim WhatsApp
+                Buka WhatsApp
               </a>
             </div>
             {normalizeWhatsappPhone(waPhone) ? (
@@ -284,18 +284,24 @@ export default function CreateLetterPage() {
               padding: `${pageMargin.top}cm ${pageMargin.right}cm ${pageMargin.bottom}cm ${pageMargin.left}cm`,
             }}
           >
-            <div className="border-b-4 border-black pb-4 text-center">
+            <div className="flex items-center gap-4 border-b-4 border-black pb-4">
               {settings.logoBase64 ? (
-                <img alt="Logo desa" className="letter-logo mx-auto mb-2 h-16 w-16 object-contain" src={settings.logoBase64} />
+                <img
+                  alt="Logo desa"
+                  className="letter-logo letter-logo-letterhead flex-none object-contain"
+                  src={settings.logoBase64}
+                />
               ) : null}
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-black">
-                Pemerintah Kabupaten {settings.regencyName}
-              </p>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-black">
-                Kecamatan {settings.districtName}
-              </p>
-              <h3 className="mt-1 text-2xl font-bold uppercase text-black">{settings.villageName}</h3>
-              <p className="mt-1 text-sm text-black">{settings.villageAddress}</p>
+              <div className="min-w-0 flex-1 text-center">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-black">
+                  Pemerintah Kabupaten {settings.regencyName}
+                </p>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-black">
+                  Kecamatan {settings.districtName}
+                </p>
+                <h3 className="mt-1 text-2xl font-bold uppercase text-black">{settings.villageName}</h3>
+                <p className="mt-1 text-sm text-black">{settings.villageAddress}</p>
+              </div>
             </div>
             <article
               className="letter-content mt-8 font-serif text-[12pt] leading-7 text-black"

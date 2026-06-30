@@ -151,25 +151,6 @@ export default function AppShell({ children }) {
 
         {sidebarOpen ? (
           <aside className="no-print subtle-scrollbar fixed inset-y-0 left-0 z-50 w-[88vw] max-w-[320px] overflow-y-auto overscroll-contain bg-primary-900 px-5 py-6 text-white lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:h-screen lg:w-[260px] lg:max-w-none">
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary-100">
-                  simpoi
-                </p>
-                <button
-                  aria-label="Tutup sidebar"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/10 hover:text-white"
-                  onClick={() => setSidebarOpen(false)}
-                  type="button"
-                >
-                  <Menu className="h-4 w-4" />
-                </button>
-              </div>
-              <h1 className="mt-3 text-2xl font-bold leading-tight">Sistem Surat Desa</h1>
-              <p className="mt-3 text-sm leading-6 text-white/75">
-                MVP local-first untuk membuat, mencetak, dan membagikan surat via WhatsApp.
-              </p>
-            </div>
 
             <nav className="mt-6 grid gap-2 text-sm font-semibold">
               {navItems.map((item) => (
@@ -188,12 +169,6 @@ export default function AppShell({ children }) {
                 </AppLink>
               ))}
             </nav>
-
-            <div className="mt-6 rounded-2xl bg-primary-700/50 p-4 text-sm leading-6 text-white/80">
-              <strong className="block text-white">Catatan privasi</strong>
-              Data warga dan hasil surat tidak disimpan. simpoi hanya menyimpan template,
-              pengaturan, logo, dan pesan WhatsApp di browser operator.
-            </div>
           </aside>
         ) : null}
 
