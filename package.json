@@ -1,0 +1,31 @@
+{
+  "name": "simpoi",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "lint": "vite build --mode development"
+  },
+  "dependencies": {
+    "@tiptap/extension-table": "^3.27.1",
+    "@tiptap/extension-table-cell": "^3.27.1",
+    "@tiptap/extension-table-header": "^3.27.1",
+    "@tiptap/extension-table-row": "^3.27.1",
+    "@tiptap/extension-text-align": "^3.27.1",
+    "@tiptap/extension-underline": "^3.27.1",
+    "@tiptap/react": "^3.27.1",
+    "@tiptap/starter-kit": "^3.27.1",
+    "esbuild": "^0.28.1",
+    "lucide-react": "^1.21.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "tailwindcss": "^4",
+    "vite": "^7.3.0"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "simpoi - Sistem Surat Desa",
+  "short_name": "simpoi",
+  "description": "Aplikasi administrasi surat desa berbasis PWA.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#FAFAFA",
+  "theme_color": "#713600",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
