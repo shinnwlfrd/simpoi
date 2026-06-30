@@ -284,10 +284,12 @@ export default function AddTemplatePage() {
         </section>
 
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card">
-          <AddTemplateToolbar editor={editor} />
-          <div className="bg-gray-100 p-4 md:p-6">
+          <div className="overflow-x-auto">
+            <AddTemplateToolbar editor={editor} />
+          </div>
+          <div className="overflow-x-auto bg-gray-100 p-4 md:p-6">
             <div
-              className="sheet-a4 mx-auto bg-white shadow-card"
+              className="sheet-a4 mx-auto w-[210mm] min-w-[210mm] bg-white shadow-card"
               style={{
                 padding: `${pageMargin.top}cm ${pageMargin.right}cm ${pageMargin.bottom}cm ${pageMargin.left}cm`,
               }}
