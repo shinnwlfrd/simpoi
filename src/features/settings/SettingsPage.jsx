@@ -1,6 +1,7 @@
-import { CheckCircle2, ImageIcon, Save, Upload } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ImageIcon, Save, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { defaultSettings, placeholderFields } from "@/data/defaults";
+import { AppLink } from "@/lib/router";
 import { getSettings, saveSettings, subscribesimpoiStorage } from "@/services/local-storage";
 
 const whatsappPlaceholders = [
@@ -76,15 +77,22 @@ export default function SettingsPage() {
     });
   }
 
+  const headVillageTitle = settings.headVillageTitle ?? "Kepala Ohoi";
+  const nameKey = headVillageTitle === "Pj. Kepala Desa" ? "headVillageName_pjDesa" : "headVillageName_kepalaOhoi";
+  const nipKey = headVillageTitle === "Pj. Kepala Desa" ? "headVillageNip_pjDesa" : "headVillageNip_kepalaOhoi";
+
   const identityFields = [
     ["villageName", "Nama Desa / Ohoi"],
     ["districtName", "Kecamatan"],
     ["regencyName", "Kabupaten"],
     ["villageAddress", "Alamat Desa", true],
+    ["villagePostalCode", "Kode Pos"],
+    ["villageEmail", "Email Desa"],
+    ["villageSocialMedia", "Media Sosial Desa", true],
     ["villagePlaceName", "Tempat Surat (untuk 'Dikeluarkan di...')"],
-    ["headVillageName", "Nama Kepala Desa / Ohoi"],
-    ["headVillageNip", "NIP Kepala Desa"],
-    ["headVillageRank", "Pangkat Kepala Desa"],
+    ["headVillageTitle", "Jabatan Pemimpin Desa"],
+    [nameKey, headVillageTitle === "Pj. Kepala Desa" ? "Nama Pj. Kepala Desa" : "Nama Kepala Ohoi"],
+    [nipKey, headVillageTitle === "Pj. Kepala Desa" ? "NIP Pj. Kepala Desa" : "NIP Kepala Ohoi"],
   ];
 
   const superiorFields = [
@@ -94,12 +102,24 @@ export default function SettingsPage() {
     ["superiorRank", "Pangkat Pejabat Atasan"],
   ];
 
-  const letterNumberFields = [
-    ["letterNumberPrefix", "Kode Instansi (prefix nomor surat)"],
-    ["letterNumberFormat", "Format Nomor Surat"],
-  ];
-
   function renderSettingsField([key, label, fullWidth]) {
+    if (key === "headVillageTitle") {
+      return (
+        <label className="block text-sm font-medium text-gray-700" htmlFor={key} key={key}>
+          {label}
+          <select
+            className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-700 focus:ring-4 focus:ring-primary-100"
+            id={key}
+            onChange={(event) => updateField(key, event.target.value)}
+            value={settings[key] ?? "Kepala Ohoi"}
+          >
+            <option value="Kepala Ohoi">Kepala Ohoi</option>
+            <option value="Pj. Kepala Desa">Pj. Kepala Desa</option>
+          </select>
+        </label>
+      );
+    }
+
     return (
       <label
         className={`block text-sm font-medium text-gray-700${fullWidth ? " md:col-span-2" : ""}`}
@@ -130,9 +150,20 @@ export default function SettingsPage() {
 
       {/* Identitas Desa */}
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-card md:p-6">
-        <p className="text-sm font-semibold text-primary-700">Pengaturan</p>
-        <h3 className="mt-1 text-2xl font-bold text-gray-900">Identitas Desa</h3>
-        <p className="mt-2 text-sm leading-6 text-gray-500">{status}</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-primary-700">Pengaturan</p>
+            <h3 className="mt-1 text-2xl font-bold text-gray-900">Identitas Desa</h3>
+            <p className="mt-2 text-sm leading-6 text-gray-500">{status}</p>
+          </div>
+          <AppLink
+            className="inline-flex w-fit items-center gap-2 rounded-xl border border-primary-400 bg-white px-4 py-2.5 text-sm font-semibold text-primary-700 transition hover:bg-primary-100"
+            href="/dashboard"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Kembali
+          </AppLink>
+        </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {identityFields.map(renderSettingsField)}
@@ -183,21 +214,6 @@ export default function SettingsPage() {
         </p>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           {superiorFields.map(renderSettingsField)}
-        </div>
-      </section>
-
-      {/* Nomor Surat Otomatis */}
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-card md:p-6">
-        <h3 className="text-xl font-bold text-gray-900">Nomor Surat Otomatis</h3>
-        <p className="mt-2 text-sm leading-6 text-gray-500">
-          Konfigurasi format auto-numbering. Gunakan token: <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-mono">{"{nomor}"}</code> (urutan),{" "}
-          <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-mono">{"{kode}"}</code> (kode surat),{" "}
-          <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-mono">{"{kode_instansi}"}</code> (prefix),{" "}
-          <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-mono">{"{bulan}"}</code> (Romawi),{" "}
-          <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-mono">{"{tahun}"}</code>.
-        </p>
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          {letterNumberFields.map(renderSettingsField)}
         </div>
       </section>
 

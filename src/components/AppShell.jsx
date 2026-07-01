@@ -1,4 +1,4 @@
-import { Menu } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { defaultSettings } from "@/data/defaults";
 import { AppLink, useAppRouter, usePathname } from "@/lib/router";
@@ -17,31 +17,24 @@ const extraPrefetchPaths = ["/templates/editor", "/templates/tambah"];
 const pageMeta = {
   "/dashboard": {
     badge: "Dashboard",
-    title: "Dashboard simpoi",
   },
   "/settings": {
     badge: "Pengaturan",
-    title: "Pengaturan simpoi",
   },
   "/surat": {
     badge: "Form Surat",
-    title: "Form Surat Desa",
   },
   "/templates": {
     badge: "Daftar Template",
-    title: "Daftar Template Surat",
   },
   "/templates/editor": {
     badge: "Editor Template",
-    title: "Editor Template Surat",
   },
   "/templates/tambah": {
     badge: "Template Baru",
-    title: "Tambah Template Surat",
   },
   "/tentang": {
     badge: "Tentang",
-    title: "Tentang simpoi",
   },
 };
 
@@ -78,8 +71,17 @@ export default function AppShell({ children }) {
   const meta = pageMeta[pathname] ?? pageMeta[`/${active}`] ?? pageMeta["/dashboard"];
 
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
+    if (import.meta.env.PROD && "serviceWorker" in navigator) {
       navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined);
+    }
+
+    if (import.meta.env.DEV && "serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+        .then(() => ("caches" in window ? window.caches.keys() : []))
+        .then((cacheNames) => Promise.all(cacheNames.map((cacheName) => window.caches.delete(cacheName))))
+        .catch(() => undefined);
     }
   }, []);
 
@@ -151,13 +153,24 @@ export default function AppShell({ children }) {
 
         {sidebarOpen ? (
           <aside className="no-print subtle-scrollbar fixed inset-y-0 left-0 z-50 w-[88vw] max-w-[320px] overflow-y-auto overscroll-contain bg-primary-900 px-5 py-6 text-white lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:h-screen lg:w-[260px] lg:max-w-none">
+            <div className="flex items-center justify-between gap-3">
+              <p className="min-w-0 truncate text-sm font-semibold text-white">{settings.villageName}</p>
+              <button
+                aria-label="Tutup sidebar"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
+                onClick={() => setSidebarOpen(false)}
+                type="button"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
             <nav className="mt-6 grid gap-2 text-sm font-semibold">
               {navItems.map((item) => (
                 <AppLink
                   className={`rounded-xl px-4 py-3 ${item.key === active
-                      ? "bg-primary-700 text-white"
-                      : "text-white/80 hover:bg-white/10"
+                    ? "bg-primary-700 text-white"
+                    : "text-white/80 hover:bg-white/10"
                     }`}
                   href={item.href}
                   key={item.key}
@@ -175,19 +188,20 @@ export default function AppShell({ children }) {
         <main className={`min-w-0 flex-1 ${sidebarOpen ? "lg:pl-[260px]" : ""}`}>
           <header className="no-print border-b border-gray-200 bg-white px-5 py-4 lg:px-8">
             <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3">
-                <button
-                  aria-expanded={sidebarOpen}
-                  aria-label={sidebarOpen ? "Tutup sidebar" : "Buka sidebar"}
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 transition hover:border-primary-400 hover:text-primary-700"
-                  onClick={() => setSidebarOpen((current) => !current)}
-                  type="button"
-                >
-                  <Menu className="h-5 w-5" />
-                </button>
+              <div className="flex min-w-0 items-center gap-3">
+                {!sidebarOpen ? (
+                  <button
+                    aria-expanded={sidebarOpen}
+                    aria-label="Buka sidebar"
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 transition hover:border-primary-400 hover:text-primary-700"
+                    onClick={() => setSidebarOpen(true)}
+                    type="button"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </button>
+                ) : null}
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-primary-700">{settings.villageName}</p>
-                  <h2 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">{meta.title}</h2>
+                  <p className="truncate text-base font-bold text-primary-700">{settings.villageName}</p>
                 </div>
               </div>
               <span className="w-fit max-w-full rounded-full bg-primary-100 px-4 py-2 text-sm font-semibold text-primary-900">

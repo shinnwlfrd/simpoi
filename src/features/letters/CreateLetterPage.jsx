@@ -1,9 +1,9 @@
-import { Hash, MessageCircle, Printer, RefreshCcw } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, Printer, RefreshCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { defaultPageMargin, defaultSettings, defaultTemplates } from "@/data/defaults";
+import { AppLink } from "@/lib/router";
 import { getSettings, getTemplates, normalizePageMargin, subscribesimpoiStorage } from "@/services/local-storage";
 import { formatIndonesianDate } from "@/utils/date";
-import { generateLetterNumber } from "@/utils/letter-number";
 import { buildTemplateValues, getFieldsForTemplate, replacePlaceholders } from "@/utils/placeholders";
 import { createWhatsappUrl, normalizeWhatsappPhone } from "@/utils/whatsapp";
 
@@ -22,13 +22,17 @@ export default function CreateLetterPage() {
   const [formValues, setFormValues] = useState({});
   const [waPhone, setWaPhone] = useState("");
   const [status, setStatus] = useState("Pilih template dan isi data surat.");
+  const [formOpen, setFormOpen] = useState(true);
+  const [signatory, setSignatory] = useState("Kepala Ohoi");
 
   function loadLocalData() {
     const activeTemplates = getTemplates({ activeOnly: true });
     const availableTemplates = activeTemplates.length ? activeTemplates : defaultTemplates;
 
     setTemplates(availableTemplates);
-    setSettings(getSettings());
+    const storedSettings = getSettings();
+    setSettings(storedSettings);
+    setSignatory(storedSettings.headVillageTitle ?? "Kepala Ohoi");
     setSelectedId((current) => availableTemplates.find((template) => template.id === current)?.id ?? availableTemplates[0].id);
     setStatus("Data dimuat dari penyimpanan lokal browser.");
   }
@@ -47,7 +51,7 @@ export default function CreateLetterPage() {
     [selectedTemplate?.contentHtml],
   );
   const templateValues = selectedTemplate
-    ? buildTemplateValues(normalizeFormValues(fields, formValues), settings, formValues.nomor_surat ?? "")
+    ? buildTemplateValues(normalizeFormValues(fields, formValues), settings, signatory)
     : {};
   const previewHtml = selectedTemplate
     ? replacePlaceholders(selectedTemplate.contentHtml, templateValues)
@@ -70,23 +74,6 @@ export default function CreateLetterPage() {
     setStatus("Form dikosongkan. Data warga tidak disimpan.");
   }
 
-  function handleAutoNumber() {
-    if (!selectedTemplate) {
-      return;
-    }
-
-    const format = settings.letterNumberFormat || "{nomor}/{kode}/{kode_instansi}/{bulan}/{tahun}";
-    const generatedNumber = generateLetterNumber({
-      format,
-      templateCode: selectedTemplate.code,
-      institutionCode: settings.letterNumberPrefix || "",
-      autoIncrement: true,
-    });
-
-    updateField("nomor_surat", generatedNumber);
-    setStatus(`Nomor surat otomatis: ${generatedNumber}`);
-  }
-
   function downloadPdf() {
     window.print();
   }
@@ -96,11 +83,7 @@ export default function CreateLetterPage() {
 
     if (field.type === "textarea") {
       return (
-        <label
-          className="block text-sm font-medium text-gray-700 md:col-span-2"
-          htmlFor={field.key}
-          key={field.key}
-        >
+        <label className="block text-sm font-medium text-gray-700" htmlFor={field.key} key={field.key}>
           {field.label}
           <textarea
             className="mt-2 min-h-24 w-full rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-700 focus:ring-4 focus:ring-primary-100"
@@ -150,34 +133,6 @@ export default function CreateLetterPage() {
       );
     }
 
-    // Special handling for nomor_surat: add auto-number button
-    if (field.key === "nomor_surat") {
-      return (
-        <label className="block text-sm font-medium text-gray-700" htmlFor={field.key} key={field.key}>
-          {field.label}
-          <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto]">
-            <input
-              className="w-full rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-700 focus:ring-4 focus:ring-primary-100"
-              id={field.key}
-              onChange={(event) => updateField(field.key, event.target.value)}
-              placeholder={field.sample}
-              type="text"
-              value={value}
-            />
-            <button
-              className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-primary-400 bg-white px-3 py-2.5 text-sm font-semibold text-primary-700 transition hover:bg-primary-100"
-              onClick={handleAutoNumber}
-              title="Generate nomor surat otomatis"
-              type="button"
-            >
-              <Hash className="h-4 w-4" />
-              Auto
-            </button>
-          </div>
-        </label>
-      );
-    }
-
     return (
       <label className="block text-sm font-medium text-gray-700" htmlFor={field.key} key={field.key}>
         {field.label}
@@ -194,37 +149,73 @@ export default function CreateLetterPage() {
   }
 
   return (
-    <section className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-5 lg:px-8">
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-        <div className="no-print space-y-6">
+    <section className="mx-auto max-w-[1600px] px-4 py-6 sm:px-5 lg:px-8">
+      <div className={`grid items-start gap-4 transition-all lg:h-[calc(100vh-104px)] ${formOpen ? "lg:grid-cols-[420px_minmax(0,1fr)]" : "lg:grid-cols-[56px_minmax(0,1fr)]"}`}>
+        <div className="no-print subtle-scrollbar max-h-[calc(100vh-120px)] overflow-y-auto pr-1">
+          <button
+            className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+            onClick={() => setFormOpen((current) => !current)}
+            type="button"
+          >
+            {formOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            {formOpen ? "Tutup Form" : ""}
+          </button>
+          {formOpen ? (
+          <div className="space-y-6">
         <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-card md:p-6">
-          <p className="text-sm font-semibold text-primary-700">Buat Surat</p>
-          <h3 className="mt-1 text-2xl font-bold text-gray-900">Pilih template</h3>
-          <p className="mt-2 text-sm leading-6 text-gray-500">{status}</p>
-
-          <label className="mt-5 block text-sm font-medium text-gray-700" htmlFor="template">
-            Template Surat
-            <select
-              className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-700 focus:ring-4 focus:ring-primary-100"
-              id="template"
-              onChange={(event) => {
-                setSelectedId(event.target.value);
-                setFormValues({});
-              }}
-              value={selectedTemplate?.id ?? ""}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-primary-700">Buat Surat</p>
+              <h3 className="mt-1 text-2xl font-bold text-gray-900">Pilih template</h3>
+              <p className="mt-2 text-sm leading-6 text-gray-500">{status}</p>
+            </div>
+            <AppLink
+              className="inline-flex w-fit items-center gap-2 rounded-xl border border-primary-400 bg-white px-4 py-2.5 text-sm font-semibold text-primary-700 transition hover:bg-primary-100"
+              href="/dashboard"
             >
-              {templates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              <ArrowLeft className="h-4 w-4" />
+              Kembali
+            </AppLink>
+          </div>
+
+          <div className="mt-5 space-y-4">
+            <label className="block text-sm font-medium text-gray-700" htmlFor="template">
+              Template Surat
+              <select
+                className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-700 focus:ring-4 focus:ring-primary-100"
+                id="template"
+                onChange={(event) => {
+                  setSelectedId(event.target.value);
+                  setFormValues({});
+                }}
+                value={selectedTemplate?.id ?? ""}
+              >
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block text-sm font-medium text-gray-700" htmlFor="signatory">
+              Jabatan Pemimpin Desa (Penandatangan)
+              <select
+                className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-700 focus:ring-4 focus:ring-primary-100"
+                id="signatory"
+                onChange={(event) => setSignatory(event.target.value)}
+                value={signatory}
+              >
+                <option value="Kepala Ohoi">Kepala Ohoi</option>
+                <option value="Pj. Kepala Desa">Pj. Kepala Desa</option>
+              </select>
+            </label>
+          </div>
         </section>
 
         <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-card md:p-6">
           <h3 className="text-xl font-bold text-gray-900">Data Surat</h3>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="mt-5 grid grid-cols-1 gap-4">
             {fields.map((field) => renderField(field))}
           </div>
         </section>
@@ -275,11 +266,13 @@ export default function CreateLetterPage() {
             ) : null}
           </label>
         </section>
+          </div>
+          ) : null}
         </div>
 
-        <div className="overflow-x-auto pb-2">
+        <div className="subtle-scrollbar max-h-[calc(100vh-120px)] overflow-auto pb-2">
           <aside
-            className="print-area sheet-a4 mx-auto w-[210mm] min-w-[210mm] bg-white text-black shadow-card max-sm:mx-0 max-sm:shadow-none"
+            className="print-area sheet-a4 mx-auto w-full max-w-[210mm] min-w-0 bg-white text-black shadow-card"
             style={{
               padding: `${pageMargin.top}cm ${pageMargin.right}cm ${pageMargin.bottom}cm ${pageMargin.left}cm`,
             }}
@@ -300,7 +293,15 @@ export default function CreateLetterPage() {
                   Kecamatan {settings.districtName}
                 </p>
                 <h3 className="mt-1 text-2xl font-bold uppercase text-black">{settings.villageName}</h3>
-                <p className="mt-1 text-sm text-black">{settings.villageAddress}</p>
+                <p className="mt-1 text-sm text-black">
+                  {settings.villageAddress}
+                  {settings.villagePostalCode ? `, ${settings.villagePostalCode}` : ""}
+                </p>
+                {settings.villageEmail || settings.villageSocialMedia ? (
+                  <p className="mt-1 text-sm text-black">
+                    {[settings.villageEmail, settings.villageSocialMedia].filter(Boolean).join(" | ")}
+                  </p>
+                ) : null}
               </div>
             </div>
             <article

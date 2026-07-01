@@ -1,4 +1,4 @@
-const CACHE_NAME = "simpoi-shell-v7";
+const CACHE_NAME = "simpoi-shell-v8";
 const SHELL_FILES = ["./", "./index.html", "./manifest.json", "./icon.svg"];
 
 self.addEventListener("install", (event) => {

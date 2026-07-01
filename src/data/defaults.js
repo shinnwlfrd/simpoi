@@ -12,6 +12,11 @@ export const defaultSettings = {
   headVillageName: "Nama Kepala Desa",
   headVillageNip: "",
   headVillageRank: "",
+  headVillageTitle: "Kepala Ohoi",
+  headVillageName_kepalaOhoi: "Nama Kepala Ohoi",
+  headVillageNip_kepalaOhoi: "",
+  headVillageName_pjDesa: "Nama Pj. Kepala Desa",
+  headVillageNip_pjDesa: "",
   logoBase64: "",
   regencyName: "Kabupaten Contoh",
   superiorName: "",
@@ -19,10 +24,11 @@ export const defaultSettings = {
   superiorRank: "",
   superiorTitle: "",
   villageAddress: "Jl. Administrasi Desa No. 1",
+  villageEmail: "",
   villageName: "Desa Contoh",
   villagePlaceName: "",
-  letterNumberFormat: "{nomor}/{kode}/{kode_instansi}/{bulan}/{tahun}",
-  letterNumberPrefix: "",
+  villagePostalCode: "",
+  villageSocialMedia: "",
   whatsappTemplate:
     "Halo, surat {{nama_template}} atas nama {{nama_warga}} dengan nomor {{nomor_surat}} sudah siap diproses.",
 };
@@ -42,6 +48,10 @@ export const placeholderFields = [
   { key: "kecamatan", label: "Kecamatan", sample: defaultSettings.districtName, type: "text" },
   { key: "kabupaten", label: "Kabupaten", sample: defaultSettings.regencyName, type: "text" },
   { key: "alamat_desa", label: "Alamat Desa", sample: defaultSettings.villageAddress, type: "textarea" },
+  { key: "kode_pos", label: "Kode Pos Desa", sample: "97611", type: "text" },
+  { key: "email_desa", label: "Email Desa", sample: "desa@example.go.id", type: "text" },
+  { key: "media_sosial_desa", label: "Media Sosial Desa", sample: "@desa_contoh", type: "text" },
+  { key: "jabatan_kepala_desa", label: "Jabatan Kepala Desa", sample: defaultSettings.headVillageTitle, type: "text" },
   { key: "nama_kepala_desa", label: "Nama Kepala Desa", sample: defaultSettings.headVillageName, type: "text" },
   { key: "nip_kepala_desa", label: "NIP Kepala Desa", sample: "198001012006041001", type: "text" },
   { key: "pangkat_kepala_desa", label: "Pangkat Kepala Desa", sample: "Pembina", type: "text" },
@@ -72,15 +82,15 @@ function fieldTable(rows) {
 }
 
 function signature() {
-  return `<p style="text-align:right">{{tempat_surat}}, {{tanggal_surat}}<br>Kepala Desa {{nama_desa}}</p><p style="text-align:right"><br><br><strong><u>{{nama_kepala_desa}}</u></strong><br>${"{{nip_kepala_desa}}"}</p>`;
+  return `<p style="text-align:right">{{tempat_surat}}, {{tanggal_surat}}<br>{{jabatan_kepala_desa}} {{nama_desa}}</p><p style="text-align:right"><br><br><strong><u>{{nama_kepala_desa}}</u></strong><br>${"{{nip_kepala_desa}}"}</p>`;
 }
 
 function dualSignature() {
-  return `<table style="width:100%;margin-top:2em"><tbody><tr><td style="text-align:center;vertical-align:top;width:50%"><p>Mengetahui<br>{{jabatan_pejabat_atasan}}</p><p><br><br><strong><u>{{nama_pejabat_atasan}}</u></strong><br>{{pangkat_pejabat_atasan}}<br>NIP. {{nip_pejabat_atasan}}</p></td><td style="text-align:center;vertical-align:top;width:50%"><p>Kepala Desa {{nama_desa}}</p><p><br><br><strong><u>{{nama_kepala_desa}}</u></strong></p></td></tr></tbody></table>`;
+  return `<table style="width:100%;margin-top:2em"><tbody><tr><td style="text-align:center;vertical-align:top;width:50%"><p>Mengetahui<br>{{jabatan_pejabat_atasan}}</p><p><br><br><strong><u>{{nama_pejabat_atasan}}</u></strong><br>{{pangkat_pejabat_atasan}}<br>NIP. {{nip_pejabat_atasan}}</p></td><td style="text-align:center;vertical-align:top;width:50%"><p>{{jabatan_kepala_desa}} {{nama_desa}}</p><p><br><br><strong><u>{{nama_kepala_desa}}</u></strong></p></td></tr></tbody></table>`;
 }
 
 function signatureWithRank() {
-  return `<p style="text-align:right">{{tempat_surat}}, {{tanggal_surat}}<br>Kepala Desa {{nama_desa}}</p><p style="text-align:right"><br><br><strong><u>{{nama_kepala_desa}}</u></strong><br>{{pangkat_kepala_desa}}<br>NIP. {{nip_kepala_desa}}</p>`;
+  return `<p style="text-align:right">{{tempat_surat}}, {{tanggal_surat}}<br>{{jabatan_kepala_desa}} {{nama_desa}}</p><p style="text-align:right"><br><br><strong><u>{{nama_kepala_desa}}</u></strong><br>{{pangkat_kepala_desa}}<br>NIP. {{nip_kepala_desa}}</p>`;
 }
 
 const residentFields = fieldTable([
@@ -109,7 +119,7 @@ const businessFields = fieldTable([
 
 const signerFields = fieldTable([
   ["Nama", "<strong>{{nama_kepala_desa}}</strong>"],
-  ["Jabatan", "Kepala Desa {{nama_desa}}"],
+  ["Jabatan", "{{jabatan_kepala_desa}} {{nama_desa}}"],
   ["Alamat", "{{alamat_desa}}"],
 ]);
 

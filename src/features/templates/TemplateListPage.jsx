@@ -1,10 +1,19 @@
-import { Edit3, FilePlus2, RotateCcw, ToggleLeft, ToggleRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowLeft, Download, Edit3, FilePlus2, Trash2, ToggleLeft, ToggleRight, Upload } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { AppLink } from "@/lib/router";
-import { getTemplates, resetDefaultTemplates, subscribesimpoiStorage } from "@/services/local-storage";
+import {
+  deleteTemplate,
+  duplicateTemplate,
+  exportTemplatesJson,
+  getTemplates,
+  importTemplatesJson,
+  subscribesimpoiStorage,
+} from "@/services/local-storage";
 
 export default function TemplateListPage() {
+  const importInputRef = useRef(null);
   const [templates, setTemplates] = useState([]);
+  const [status, setStatus] = useState("");
 
   function loadTemplates() {
     setTemplates(getTemplates());
@@ -15,25 +24,101 @@ export default function TemplateListPage() {
     return subscribesimpoiStorage(loadTemplates);
   }, []);
 
-  function resetTemplates() {
-    if (!window.confirm("Reset semua template ke bawaan simpoi? Perubahan template lokal akan hilang.")) {
+  function copyTemplate(template) {
+    duplicateTemplate(template.id);
+    setStatus(`Template "${template.name}" berhasil diduplikasi.`);
+  }
+
+  function removeTemplate(template) {
+    if (!window.confirm(`Hapus template "${template.name}"?`)) {
       return;
     }
 
-    resetDefaultTemplates();
+    deleteTemplate(template.id);
+    setStatus(`Template "${template.name}" dihapus.`);
+  }
+
+  function exportTemplates() {
+    const blob = new Blob([exportTemplatesJson()], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `simpoi-templates-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setStatus("Template berhasil diexport sebagai JSON.");
+  }
+
+  function importTemplates(file) {
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const imported = importTemplatesJson(String(reader.result ?? ""));
+        setStatus(imported ? "Template berhasil diimport dari JSON." : "File JSON template tidak valid.");
+      } catch {
+        setStatus("File JSON template tidak bisa dibaca.");
+      }
+    };
+    reader.readAsText(file);
   }
 
   return (
     <section className="mx-auto max-w-7xl space-y-6 px-5 py-6 lg:px-8">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <AppLink
-          className="inline-flex items-center gap-2 rounded-2xl bg-primary-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-400"
-          href="/templates/tambah"
+          className="inline-flex items-center gap-2 rounded-2xl border border-primary-400 bg-white px-4 py-2.5 text-sm font-semibold text-primary-700 transition hover:bg-primary-100"
+          href="/dashboard"
         >
-          <FilePlus2 className="h-4 w-4" />
-          Tambah Template
+          <ArrowLeft className="h-4 w-4" />
+          Kembali
         </AppLink>
+        <div className="flex flex-wrap gap-3">
+          <button
+            className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+            onClick={exportTemplates}
+            type="button"
+          >
+            <Download className="h-4 w-4" />
+            Export JSON
+          </button>
+          <button
+            className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+            onClick={() => importInputRef.current?.click()}
+            type="button"
+          >
+            <Upload className="h-4 w-4" />
+            Import JSON
+          </button>
+          <input
+            accept="application/json"
+            className="hidden"
+            onChange={(event) => {
+              importTemplates(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+            ref={importInputRef}
+            type="file"
+          />
+          <AppLink
+            className="inline-flex items-center gap-2 rounded-2xl bg-primary-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-400"
+            href="/templates/tambah"
+          >
+            <FilePlus2 className="h-4 w-4" />
+            Tambah Template
+          </AppLink>
+        </div>
       </div>
+
+      {status ? (
+        <div className="rounded-2xl border border-primary-100 bg-primary-100/50 px-4 py-3 text-sm font-semibold text-primary-900">
+          {status}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {templates.map((template) => (
@@ -49,7 +134,7 @@ export default function TemplateListPage() {
                 <ToggleLeft className="h-5 w-5 text-gray-400" />
               )}
             </div>
-            <div className="mt-auto pt-5">
+            <div className="mt-auto grid grid-cols-2 gap-3 pt-5">
               <AppLink
                 className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary-400 bg-white px-4 py-2.5 text-sm font-semibold text-primary-700 transition hover:bg-primary-100"
                 href={`/templates/editor?template=${encodeURIComponent(template.id)}`}
@@ -57,19 +142,18 @@ export default function TemplateListPage() {
                 <Edit3 className="h-4 w-4" />
                 Edit
               </AppLink>
+              <button
+                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+                onClick={() => removeTemplate(template)}
+                type="button"
+              >
+                <Trash2 className="h-4 w-4" />
+                Hapus
+              </button>
             </div>
           </article>
         ))}
       </div>
-
-      <button
-        className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
-        onClick={resetTemplates}
-        type="button"
-      >
-        <RotateCcw className="h-4 w-4" />
-        Reset Template Default
-      </button>
     </section>
   );
 }

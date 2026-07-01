@@ -10,28 +10,52 @@ import {
   AlignRight,
   ArrowLeft,
   Bold,
+  Eraser,
   Heading2,
   Italic,
   List,
   ListOrdered,
+  Maximize2,
+  Minimize2,
   Save,
+  Table2,
+  TableCellsMerge,
+  TableCellsSplit,
+  Columns3,
+  Rows3,
+  Trash2,
   UnderlineIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { defaultPageMargin, placeholderFields, defaultSettings } from "@/data/defaults";
 import { AppLink, useAppRouter } from "@/lib/router";
-import { createTemplate, normalizePageMargin, getSettings } from "@/services/local-storage";
+import {
+  clearTemplateDraft,
+  createTemplate,
+  getTemplateDraft,
+  normalizePageMargin,
+  saveTemplateDraft,
+  getSettings,
+} from "@/services/local-storage";
+import {
+  clearSelectedFormatting,
+  focusPlaceholder,
+  insertBasicTable,
+  insertPlaceholder,
+  insertTemplateBlock,
+  templateBlocks,
+  validateTemplateContent,
+} from "@/features/templates/template-editor-tools";
+
+const newTemplateDraftId = "new-template";
 
 const starterHtml =
   '<h1 style="text-align:center"><strong>JUDUL SURAT</strong></h1><p style="text-align:center">Nomor: {{nomor_surat}}</p><p>Yang bertanda tangan di bawah ini, Kepala Desa {{nama_desa}}, menerangkan bahwa:</p><table><tbody><tr><td>Nama</td><td>:</td><td>{{nama_warga}}</td></tr><tr><td>NIK</td><td>:</td><td>{{nik}}</td></tr><tr><td>Alamat</td><td>:</td><td>{{alamat}}</td></tr></tbody></table><p>Surat ini dibuat untuk dipergunakan sebagai {{keperluan}}.</p><p style="text-align:right">{{nama_desa}}, {{tanggal_surat}}<br>Kepala Desa {{nama_desa}}</p><p style="text-align:right"><br><br><strong>{{nama_kepala_desa}}</strong></p>';
 
-function alignedFieldsHtml() {
-  return '<table><tbody><tr><td>Nama</td><td>:</td><td>{{nama_warga}}</td></tr><tr><td>NIK</td><td>:</td><td>{{nik}}</td></tr><tr><td>Tempat/Tanggal Lahir</td><td>:</td><td>{{tempat_lahir}}, {{tanggal_lahir}}</td></tr><tr><td>Jenis Kelamin</td><td>:</td><td>{{jenis_kelamin}}</td></tr><tr><td>Agama</td><td>:</td><td>{{agama}}</td></tr><tr><td>Pekerjaan</td><td>:</td><td>{{pekerjaan}}</td></tr><tr><td>Alamat</td><td>:</td><td>{{alamat}}</td></tr></tbody></table>';
-}
-
 function ToolbarButton({
   active,
   children,
+  disabled,
   onClick,
   title,
 }) {
@@ -41,7 +65,8 @@ function ToolbarButton({
         active
           ? "border-primary-700 bg-primary-100 text-primary-900"
           : "border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
-      }`}
+      } ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
+      disabled={disabled}
       onClick={onClick}
       title={title}
       type="button"
@@ -51,7 +76,7 @@ function ToolbarButton({
   );
 }
 
-function AddTemplateToolbar({ editor }) {
+function AddTemplateToolbar({ editor, isFullscreen, onToggleFullscreen, onZoomChange, placeholders, previewZoom }) {
   if (!editor) {
     return null;
   }
@@ -85,26 +110,97 @@ function AddTemplateToolbar({ editor }) {
       <ToolbarButton active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Number list">
         <ListOrdered className="h-4 w-4" />
       </ToolbarButton>
-      <ToolbarButton onClick={() => editor.chain().focus().insertContent(alignedFieldsHtml()).run()} title="Ratakan titik dua">
-        <List className="h-4 w-4" />
-        <span className="ml-1">:</span>
+      <ToolbarButton onClick={() => insertBasicTable(editor)} title="Sisipkan tabel">
+        <Table2 className="h-4 w-4" />
+      </ToolbarButton>
+      <ToolbarButton disabled={!editor.can().addRowAfter()} onClick={() => editor.chain().focus().addRowAfter().run()} title="Tambah baris">
+        <Rows3 className="h-4 w-4" />
+        <span className="ml-1">+</span>
+      </ToolbarButton>
+      <ToolbarButton disabled={!editor.can().addColumnAfter()} onClick={() => editor.chain().focus().addColumnAfter().run()} title="Tambah kolom">
+        <Columns3 className="h-4 w-4" />
+        <span className="ml-1">+</span>
+      </ToolbarButton>
+      <ToolbarButton disabled={!editor.can().deleteRow()} onClick={() => editor.chain().focus().deleteRow().run()} title="Hapus baris">
+        <Rows3 className="h-4 w-4" />
+        <Trash2 className="h-3 w-3" />
+      </ToolbarButton>
+      <ToolbarButton disabled={!editor.can().deleteColumn()} onClick={() => editor.chain().focus().deleteColumn().run()} title="Hapus kolom">
+        <Columns3 className="h-4 w-4" />
+        <Trash2 className="h-3 w-3" />
+      </ToolbarButton>
+      <ToolbarButton disabled={!editor.can().deleteTable()} onClick={() => editor.chain().focus().deleteTable().run()} title="Hapus tabel">
+        <Table2 className="h-4 w-4" />
+        <Trash2 className="h-3 w-3" />
+      </ToolbarButton>
+      <ToolbarButton disabled={!editor.can().mergeCells()} onClick={() => editor.chain().focus().mergeCells().run()} title="Gabung cell">
+        <TableCellsMerge className="h-4 w-4" />
+      </ToolbarButton>
+      <ToolbarButton disabled={!editor.can().splitCell()} onClick={() => editor.chain().focus().splitCell().run()} title="Pisah cell">
+        <TableCellsSplit className="h-4 w-4" />
       </ToolbarButton>
       <select
         className="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 outline-none focus:border-primary-700"
         onChange={(event) => {
-          if (event.target.value) {
-            editor.chain().focus().insertContent(`{{${event.target.value}}}`).run();
-            event.target.value = "";
-          }
+          insertTemplateBlock(editor, event.target.value);
+          event.target.value = "";
         }}
         value=""
       >
-        <option value="">Insert Placeholder</option>
+        <option value="">Sisipkan Blok</option>
+        {templateBlocks.map((block) => (
+          <option key={block.id} value={block.id}>
+            {block.label}
+          </option>
+        ))}
+      </select>
+      <ToolbarButton onClick={() => clearSelectedFormatting(editor)} title="Bersihkan format pilihan">
+        <Eraser className="h-4 w-4" />
+      </ToolbarButton>
+      <select
+        className="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 outline-none focus:border-primary-700"
+        onChange={(event) => {
+          insertPlaceholder(editor, event.target.value);
+          event.target.value = "";
+        }}
+        value=""
+      >
+        <option value="">Sisipkan Placeholder</option>
         {placeholderFields.map((placeholder) => (
           <option key={placeholder.key} value={placeholder.key}>
             {placeholder.label}
           </option>
         ))}
+      </select>
+      <select
+        className="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 outline-none focus:border-primary-700"
+        disabled={!placeholders.length}
+        onChange={(event) => {
+          focusPlaceholder(editor, event.target.value);
+          event.target.value = "";
+        }}
+        value=""
+      >
+        <option value="">Cari Placeholder</option>
+        {placeholders.map((key) => (
+          <option key={key} value={key}>
+            {`{{${key}}}`}
+          </option>
+        ))}
+      </select>
+      <ToolbarButton onClick={onToggleFullscreen} title={isFullscreen ? "Keluar layar penuh" : "Layar penuh"}>
+        {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+      </ToolbarButton>
+      <select
+        className="h-9 rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 outline-none focus:border-primary-700"
+        onChange={(event) => onZoomChange(Number(event.target.value))}
+        value={previewZoom}
+      >
+        <option value={0.75}>75%</option>
+        <option value={0.9}>90%</option>
+        <option value={1}>100%</option>
+        <option value={1.1}>110%</option>
+        <option value={1.25}>125%</option>
       </select>
     </div>
   );
@@ -162,9 +258,25 @@ export default function AddTemplatePage() {
   const [status, setStatus] = useState("Isi data template baru.");
   const [savedNotice, setSavedNotice] = useState("");
   const [settings, setSettings] = useState(defaultSettings);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [internalNotes, setInternalNotes] = useState("");
+  const [previewZoom, setPreviewZoom] = useState(1);
+  const templateValidation = validateTemplateContent(contentHtml);
 
   useEffect(() => {
     setSettings(getSettings());
+    const draft = getTemplateDraft(newTemplateDraftId);
+
+    if (draft) {
+      setCode(draft.code ?? "");
+      setContentHtml(draft.contentHtml ?? starterHtml);
+      setInternalNotes(draft.internalNotes ?? "");
+      setIsActive(Boolean(draft.isActive ?? true));
+      setName(draft.name ?? "");
+      setPageMargin(normalizePageMargin(draft.pageMargin));
+      setSortOrder(draft.sortOrder ?? 50);
+      setStatus("Draft autosave template baru dimuat.");
+    }
   }, []);
 
   useEffect(() => {
@@ -202,6 +314,43 @@ export default function AddTemplatePage() {
     applyEditorContent(editor, contentHtml);
   }, [editor]);
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      saveTemplateDraft(newTemplateDraftId, {
+        code,
+        contentHtml,
+        internalNotes,
+        isActive,
+        name,
+        pageMargin: normalizePageMargin(pageMargin),
+        sortOrder: Number.isFinite(Number(sortOrder)) ? Number(sortOrder) : 50,
+      });
+    }, 900);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [code, contentHtml, internalNotes, isActive, name, pageMargin, sortOrder]);
+
+  useEffect(() => {
+    function handleShortcut(event) {
+      if (!(event.ctrlKey || event.metaKey)) {
+        return;
+      }
+
+      if (event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        saveTemplate();
+      }
+
+      if (event.shiftKey && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        setIsFullscreen((current) => !current);
+      }
+    }
+
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  });
+
   function saveTemplate() {
     const trimmedName = name.trim();
     const trimmedCode = code.trim().toUpperCase();
@@ -216,11 +365,13 @@ export default function AddTemplatePage() {
       category: "Umum",
       code: trimmedCode,
       contentHtml: editor?.getHTML() ?? contentHtml,
+      internalNotes,
       isActive,
       name: trimmedName,
       pageMargin: normalizePageMargin(pageMargin),
       sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
     });
+    clearTemplateDraft(newTemplateDraftId);
     setStatus("Template baru berhasil disimpan di browser.");
     setSavedNotice("Template berhasil disimpan.");
     window.clearTimeout(successTimerRef.current);
@@ -301,6 +452,16 @@ export default function AddTemplatePage() {
               />
               Aktif
             </label>
+            <label className="block text-sm font-medium text-gray-700 md:col-span-2" htmlFor="internalNotes">
+              Catatan Internal
+              <textarea
+                className="mt-2 min-h-24 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-700 focus:ring-4 focus:ring-primary-100"
+                id="internalNotes"
+                onChange={(event) => setInternalNotes(event.target.value)}
+                placeholder="Catatan ini hanya untuk admin dan tidak ikut tercetak."
+                value={internalNotes}
+              />
+            </label>
           </div>
 
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -331,18 +492,33 @@ export default function AddTemplatePage() {
           </div>
         </section>
 
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card">
+        <div
+          className={
+            isFullscreen
+              ? "fixed inset-0 z-[80] overflow-auto bg-gray-100"
+              : "overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card"
+          }
+        >
           <div className="overflow-x-auto">
-            <AddTemplateToolbar editor={editor} />
+            <AddTemplateToolbar
+              editor={editor}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={() => setIsFullscreen((current) => !current)}
+              onZoomChange={setPreviewZoom}
+              placeholders={templateValidation.placeholders}
+              previewZoom={previewZoom}
+            />
           </div>
           <div className="overflow-x-auto bg-gray-100 p-4 md:p-6">
-            <div
-              className="sheet-a4 mx-auto w-[210mm] min-w-[210mm] bg-white shadow-card"
-              style={{
-                padding: `${pageMargin.top}cm ${pageMargin.right}cm ${pageMargin.bottom}cm ${pageMargin.left}cm`,
-              }}
-            >
-              <div className="mb-6 flex items-center gap-4 border-b-4 border-black pb-4">
+            <div style={{ height: `${297 * previewZoom}mm` }}>
+              <div
+                className="sheet-a4 mx-auto w-[210mm] min-w-[210mm] origin-top bg-white shadow-card"
+                style={{
+                  padding: `${pageMargin.top}cm ${pageMargin.right}cm ${pageMargin.bottom}cm ${pageMargin.left}cm`,
+                  transform: `scale(${previewZoom})`,
+                }}
+              >
+                <div className="mb-6 flex items-center gap-4 border-b-4 border-black pb-4">
                 {settings.logoBase64 ? (
                   <img
                     alt="Logo desa"
@@ -358,13 +534,54 @@ export default function AddTemplatePage() {
                     Kecamatan {settings.districtName}
                   </p>
                   <h3 className="mt-1 text-2xl font-bold uppercase text-black">{settings.villageName}</h3>
-                  <p className="mt-1 text-sm text-black">{settings.villageAddress}</p>
+                  <p className="mt-1 text-sm text-black">
+                    {settings.villageAddress}
+                    {settings.villagePostalCode ? `, ${settings.villagePostalCode}` : ""}
+                  </p>
+                  {settings.villageEmail || settings.villageSocialMedia ? (
+                    <p className="mt-1 text-sm text-black">
+                      {[settings.villageEmail, settings.villageSocialMedia].filter(Boolean).join(" | ")}
+                    </p>
+                  ) : null}
                 </div>
               </div>
-              <EditorContent editor={editor} />
+                <EditorContent editor={editor} />
+              </div>
             </div>
           </div>
         </div>
+
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 text-sm leading-6 text-gray-700 shadow-card">
+          <h4 className="text-lg font-bold text-gray-900">Pemeriksaan Template</h4>
+          {templateValidation.unknownPlaceholders.length ? (
+            <p className="mt-2 text-red-700">
+              Placeholder tidak dikenal: {templateValidation.unknownPlaceholders.map((key) => `{{${key}}}`).join(", ")}
+            </p>
+          ) : (
+            <p className="mt-2 text-green-700">Tidak ada placeholder salah ketik.</p>
+          )}
+          {templateValidation.missingImportantPlaceholders.length ? (
+            <p className="mt-2 text-amber-700">
+              Belum ada placeholder penting: {templateValidation.missingImportantPlaceholders.map((key) => `{{${key}}}`).join(", ")}
+            </p>
+          ) : (
+            <p className="mt-2 text-green-700">Nomor dan tanggal surat sudah tersedia.</p>
+          )}
+          {templateValidation.tableWarnings.length ? (
+            <p className="mt-2 text-amber-700">
+              Ada tabel dengan lebih dari 4 kolom: tabel {templateValidation.tableWarnings.map((table) => table.index).join(", ")}. Periksa agar tidak melebar saat print A4.
+            </p>
+          ) : (
+            <p className="mt-2 text-green-700">Lebar tabel masih aman untuk A4.</p>
+          )}
+          {templateValidation.likelyLongForPrint ? (
+            <p className="mt-2 text-amber-700">
+              Konten template cukup panjang. Lakukan uji print karena kemungkinan melewati satu halaman A4.
+            </p>
+          ) : (
+            <p className="mt-2 text-green-700">Panjang konten masih wajar untuk satu halaman.</p>
+          )}
+        </section>
 
         <button
           className="inline-flex items-center gap-2 rounded-xl bg-primary-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-400 disabled:cursor-not-allowed disabled:opacity-50"
