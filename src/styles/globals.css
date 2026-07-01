@@ -114,8 +114,8 @@ html:hover::-webkit-scrollbar-thumb {
   font-family: "Times New Roman", Times, serif;
 }
 
-.letter-content *,
-.tiptap-editor * {
+.letter-content *:not(img),
+.tiptap-editor *:not(img) {
   background-color: transparent !important;
   box-shadow: none !important;
   color: #000000 !important;
@@ -278,10 +278,9 @@ html:hover::-webkit-scrollbar-thumb {
     color: #000000 !important;
     box-shadow: none !important;
     max-width: none !important;
-    padding: 0 !important;
   }
 
-  .print-area * {
+  .print-area *:not(img) {
     background-color: transparent !important;
     box-shadow: none !important;
     color: #000000 !important;
@@ -293,4 +292,57 @@ html:hover::-webkit-scrollbar-thumb {
     min-height: auto;
     width: 100%;
   }
+
+  .stamp-signature-area img,
+  .stamp-image,
+  .signature-image,
+  .print-area img,
+  .letter-content img {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+}
+
+/* Cap & Tanda Tangan */
+.stamp-signature-area {
+  position: relative;
+  display: inline-block;
+}
+
+.stamp-image {
+  width: 3cm;
+  height: 3cm;
+  object-fit: contain;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.signature-image {
+  width: 3cm;
+  height: 1.5cm;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Checkerboard pattern for transparent image preview */
+.checkerboard-bg {
+  background-image:
+    linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
+    linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
+    linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0px;
+  background-color: #ffffff;
 }

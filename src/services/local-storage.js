@@ -53,6 +53,10 @@ const settingsSchema = z.object({
   headVillageNip_kepalaOhoi: z.string().optional().default(""),
   headVillageName_pjDesa: z.string().optional().default(""),
   headVillageNip_pjDesa: z.string().optional().default(""),
+  stampBase64_kepalaOhoi: z.string().optional().default(""),
+  signatureBase64_kepalaOhoi: z.string().optional().default(""),
+  stampBase64_pjDesa: z.string().optional().default(""),
+  signatureBase64_pjDesa: z.string().optional().default(""),
 });
 
 function isBrowser() {

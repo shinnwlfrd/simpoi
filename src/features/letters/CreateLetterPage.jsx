@@ -14,6 +14,42 @@ function normalizeFormValues(fields, values) {
     return current;
   }, {});
 }
+/**
+ * Injects stamp and signature images into the rendered letter HTML.
+ * Finds the <br><br> gap pattern (the space reserved for physical signature)
+ * and replaces it with actual images.
+ */
+function injectStampSignature(html, stampBase64, signatureBase64) {
+  if (!stampBase64 && !signatureBase64) {
+    return html;
+  }
+
+  // Build replacement for the <br><br> gap in signature blocks.
+  // Uses a relative container so stamp overlays signature naturally.
+  let replacement = '<span style="display:block;position:relative;text-align:center;min-height:2cm;">';
+
+  if (signatureBase64) {
+    replacement += `<img src="${signatureBase64}" alt="Tanda tangan" style="width:3cm;height:1.5cm;object-fit:contain;display:block;margin:0 auto;" />`;
+  }
+
+  if (stampBase64) {
+    // Cap is positioned absolutely over the signature area
+    replacement += `<img src="${stampBase64}" alt="Cap dinas" style="width:3cm;height:3cm;object-fit:contain;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);opacity:0.85;pointer-events:none;" />`;
+  }
+
+  replacement += "</span>";
+
+  // Replace <br><br> patterns in signature areas (the gap above the signer name).
+  // We only replace patterns that appear near signature names (within <p> or <td> blocks
+  // containing <strong> which is the convention for signer names).
+  const signatureBlockPattern = /(<(?:p|td)[^>]*>(?:(?!<\/(?:p|td)>).)*?)(<br\s*\/?>)\s*(<br\s*\/?>)((?:(?!<\/(?:p|td)>).)*?<strong>)/gi;
+
+  const result = html.replace(signatureBlockPattern, (match, before, _br1, _br2, after) => {
+    return `${before}${replacement}${after}`;
+  });
+
+  return result;
+}
 
 export default function CreateLetterPage() {
   const [templates, setTemplates] = useState(defaultTemplates);
@@ -54,7 +90,11 @@ export default function CreateLetterPage() {
     ? buildTemplateValues(normalizeFormValues(fields, formValues), settings, signatory)
     : {};
   const previewHtml = selectedTemplate
-    ? replacePlaceholders(selectedTemplate.contentHtml, templateValues)
+    ? injectStampSignature(
+        replacePlaceholders(selectedTemplate.contentHtml, templateValues),
+        templateValues.cap_dinas,
+        templateValues.tanda_tangan,
+      )
     : "";
   const whatsappMessage = selectedTemplate
     ? replacePlaceholders(settings.whatsappTemplate, {

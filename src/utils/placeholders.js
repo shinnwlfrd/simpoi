@@ -39,6 +39,8 @@ const autoFilledKeys = [
   "tempat_surat",
   "kode_pos",
   "media_sosial_desa",
+  "cap_dinas",
+  "tanda_tangan",
 ];
 
 export function getFieldsForTemplate(contentHtml) {
@@ -61,6 +63,17 @@ export function buildTemplateValues(formValues, settings, signatory) {
     headVillageNip = settings.headVillageNip_kepalaOhoi || settings.headVillageNip || "";
   }
 
+  let stampBase64 = "";
+  let signatureBase64 = "";
+
+  if (chosenTitle === "Pj. Kepala Desa") {
+    stampBase64 = settings.stampBase64_pjDesa || "";
+    signatureBase64 = settings.signatureBase64_pjDesa || "";
+  } else {
+    stampBase64 = settings.stampBase64_kepalaOhoi || "";
+    signatureBase64 = settings.signatureBase64_kepalaOhoi || "";
+  }
+
   return {
     ...formValues,
     alamat_desa: settings.villageAddress,
@@ -81,6 +94,8 @@ export function buildTemplateValues(formValues, settings, signatory) {
     tempat_surat: settings.villagePlaceName || settings.villageName,
     nomor_surat: formValues.nomor_surat || "",
     tanggal_surat: formValues.tanggal_surat || formatIndonesianDate(new Date()),
+    cap_dinas: stampBase64,
+    tanda_tangan: signatureBase64,
   };
 }
 

@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, ImageIcon, Save, Upload } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ImageIcon, PenLine, Save, Stamp, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { defaultSettings, placeholderFields } from "@/data/defaults";
 import { AppLink } from "@/lib/router";
@@ -34,7 +34,7 @@ export default function SettingsPage() {
     setSettings((current) => ({ ...current, [key]: value }));
   }
 
-  function uploadLogo(file) {
+  function uploadImage(file, fieldKey) {
     if (!file) {
       return;
     }
@@ -42,7 +42,7 @@ export default function SettingsPage() {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") {
-        updateField("logoBase64", reader.result);
+        updateField(fieldKey, reader.result);
       }
     };
     reader.readAsDataURL(file);
@@ -186,7 +186,7 @@ export default function SettingsPage() {
                     accept="image/*"
                     className="sr-only"
                     id="logoBase64"
-                    onChange={(event) => uploadLogo(event.target.files?.[0])}
+                    onChange={(event) => uploadImage(event.target.files?.[0], "logoBase64")}
                     type="file"
                   />
                 </label>
@@ -215,6 +215,155 @@ export default function SettingsPage() {
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           {superiorFields.map(renderSettingsField)}
         </div>
+      </section>
+
+      {/* Cap & Tanda Tangan */}
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-card md:p-6">
+        <h3 className="text-xl font-bold text-gray-900">Cap & Tanda Tangan</h3>
+        <p className="mt-2 text-sm leading-6 text-gray-500">
+          Upload gambar cap dinas dan tanda tangan pejabat desa. Gambar akan muncul otomatis di area tanda tangan surat saat preview dan cetak.
+          Gunakan gambar dengan latar belakang transparan (PNG) untuk hasil terbaik.
+        </p>
+
+        {/* Kepala Ohoi */}
+        <div className="mt-6">
+          <p className="text-sm font-semibold text-primary-700">Kepala Ohoi</p>
+          <div className="mt-3 grid gap-4 md:grid-cols-2">
+            {/* Cap Kepala Ohoi */}
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <p className="mb-3 text-sm font-medium text-gray-700">Cap Dinas</p>
+              <div className="checkerboard-bg flex h-28 w-28 items-center justify-center rounded-2xl border border-gray-300">
+                {settings.stampBase64_kepalaOhoi ? (
+                  <img alt="Cap dinas Kepala Ohoi" className="h-24 w-24 object-contain" src={settings.stampBase64_kepalaOhoi} />
+                ) : (
+                  <Stamp className="h-8 w-8 text-gray-400" />
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-primary-400 bg-white px-4 py-2.5 text-sm font-semibold text-primary-700 transition hover:bg-primary-100">
+                  <Upload className="h-4 w-4" />
+                  Upload Cap
+                  <input
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(event) => uploadImage(event.target.files?.[0], "stampBase64_kepalaOhoi")}
+                    type="file"
+                  />
+                </label>
+                <button
+                  className="rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                  onClick={() => updateField("stampBase64_kepalaOhoi", "")}
+                  type="button"
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+
+            {/* Tanda Tangan Kepala Ohoi */}
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <p className="mb-3 text-sm font-medium text-gray-700">Tanda Tangan</p>
+              <div className="checkerboard-bg flex h-28 w-28 items-center justify-center rounded-2xl border border-gray-300">
+                {settings.signatureBase64_kepalaOhoi ? (
+                  <img alt="Tanda tangan Kepala Ohoi" className="h-20 w-24 object-contain" src={settings.signatureBase64_kepalaOhoi} />
+                ) : (
+                  <PenLine className="h-8 w-8 text-gray-400" />
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-primary-400 bg-white px-4 py-2.5 text-sm font-semibold text-primary-700 transition hover:bg-primary-100">
+                  <Upload className="h-4 w-4" />
+                  Upload TTD
+                  <input
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(event) => uploadImage(event.target.files?.[0], "signatureBase64_kepalaOhoi")}
+                    type="file"
+                  />
+                </label>
+                <button
+                  className="rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                  onClick={() => updateField("signatureBase64_kepalaOhoi", "")}
+                  type="button"
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Pj. Kepala Desa */}
+        <div className="mt-6">
+          <p className="text-sm font-semibold text-primary-700">Pj. Kepala Desa</p>
+          <div className="mt-3 grid gap-4 md:grid-cols-2">
+            {/* Cap Pj. Kepala Desa */}
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <p className="mb-3 text-sm font-medium text-gray-700">Cap Dinas</p>
+              <div className="checkerboard-bg flex h-28 w-28 items-center justify-center rounded-2xl border border-gray-300">
+                {settings.stampBase64_pjDesa ? (
+                  <img alt="Cap dinas Pj. Kepala Desa" className="h-24 w-24 object-contain" src={settings.stampBase64_pjDesa} />
+                ) : (
+                  <Stamp className="h-8 w-8 text-gray-400" />
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-primary-400 bg-white px-4 py-2.5 text-sm font-semibold text-primary-700 transition hover:bg-primary-100">
+                  <Upload className="h-4 w-4" />
+                  Upload Cap
+                  <input
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(event) => uploadImage(event.target.files?.[0], "stampBase64_pjDesa")}
+                    type="file"
+                  />
+                </label>
+                <button
+                  className="rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                  onClick={() => updateField("stampBase64_pjDesa", "")}
+                  type="button"
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+
+            {/* Tanda Tangan Pj. Kepala Desa */}
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <p className="mb-3 text-sm font-medium text-gray-700">Tanda Tangan</p>
+              <div className="checkerboard-bg flex h-28 w-28 items-center justify-center rounded-2xl border border-gray-300">
+                {settings.signatureBase64_pjDesa ? (
+                  <img alt="Tanda tangan Pj. Kepala Desa" className="h-20 w-24 object-contain" src={settings.signatureBase64_pjDesa} />
+                ) : (
+                  <PenLine className="h-8 w-8 text-gray-400" />
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-primary-400 bg-white px-4 py-2.5 text-sm font-semibold text-primary-700 transition hover:bg-primary-100">
+                  <Upload className="h-4 w-4" />
+                  Upload TTD
+                  <input
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(event) => uploadImage(event.target.files?.[0], "signatureBase64_pjDesa")}
+                    type="file"
+                  />
+                </label>
+                <button
+                  className="rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                  onClick={() => updateField("signatureBase64_pjDesa", "")}
+                  type="button"
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-4 text-sm leading-6 text-gray-500">
+          Gambar disimpan sebagai data lokal browser agar tetap tersedia saat offline.
+        </p>
       </section>
 
       {/* WhatsApp Template */}
